@@ -1,0 +1,44 @@
+version: '2' 
+services: 
+ 
+  openldap: 
+    image: osixia/openldap
+    container_name: openldap 
+    restart: always 
+    command: --copy-service
+    environment: 
+      LDAP_LOG_LEVEL: "256" 
+      LDAP_ADMIN_PASSWORD: "password" 
+    tty: true 
+    stdin_open: true 
+    volumes: 
+      - ./database:/var/lib/ldap 
+      - ./config:/etc/ldap/slapd.d 
+      - ./slapd.conf:/usr/lib/sasl2/slapd.conf:ro
+      - var-run:/var/run/saslauthd
+    ports: 
+      - "389:389" 
+      - "636:636" 
+ 
+  phpldapadmin: 
+    image: osixia/phpldapadmin
+    container_name: phpldapadmin 
+    restart: always 
+    environment: 
+      PHPLDAPADMIN_LDAP_HOSTS: "openldap" 
+    ports: 
+      - "8880:80" 
+      - "8443:443" 
+    depends_on: 
+      - openldap
+
+  saslauthd:
+    image: dweomer/saslauthd
+    container_name: saslauthd
+    restart: always
+    volumes:
+      - ./saslauthd.conf:/etc/saslauthd.conf
+      - var-run:/var/run/saslauthd
+
+volumes:
+  var-run:
