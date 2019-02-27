@@ -1,33 +1,42 @@
+#  docker-compose.yml
+#  OpenLDAP + phpLDAPadmin + saslauthd
+#
+#  openldap has to be 1.2.2 due to a bug.
+#  01-replaceacl.dif add ACLs to allow users read the tree.
+#  slapd.conf tells openldap to use saslauthd.
+#  saslauthd provides the pass-through authentication.
+#  saslauthd.conf instructs saslauthd how to delegate.
 version: '2' 
 services: 
  
   openldap: 
-    image: osixia/openldap
+    image: osixia/openldap:1.2.2
     container_name: openldap 
     restart: always 
     command: --copy-service
     environment: 
-      LDAP_LOG_LEVEL: "256" 
       LDAP_ADMIN_PASSWORD: "password" 
     tty: true 
     stdin_open: true 
     volumes: 
       - ./database:/var/lib/ldap 
       - ./config:/etc/ldap/slapd.d 
-      - ./slapd.conf:/usr/lib/sasl2/slapd.conf:ro
+      - ./custom/slapd.conf:/usr/lib/sasl2/slapd.conf:ro
+      - ./custom/01-acl.ldif:/container/service/slapd/assets/config/bootstrap/ldif/custom/01-acl.ldif
       - var-run:/var/run/saslauthd
     ports: 
       - "389:389" 
       - "636:636" 
  
   phpldapadmin: 
-    image: osixia/phpldapadmin
+    image: osixia/phpldapadmin:0.7.2
     container_name: phpldapadmin 
     restart: always 
     environment: 
       PHPLDAPADMIN_LDAP_HOSTS: "openldap" 
+      #PHPLDAPADMIN_HTTPS: false
     ports: 
-      - "8880:80" 
+      - "80" 
       - "8443:443" 
     depends_on: 
       - openldap
@@ -37,8 +46,9 @@ services:
     container_name: saslauthd
     restart: always
     volumes:
-      - ./saslauthd.conf:/etc/saslauthd.conf
+      - ./custom/saslauthd.conf:/etc/saslauthd.conf
       - var-run:/var/run/saslauthd
 
 volumes:
   var-run:
+
